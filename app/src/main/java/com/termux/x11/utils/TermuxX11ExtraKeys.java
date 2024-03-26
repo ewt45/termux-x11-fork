@@ -115,6 +115,11 @@ public class TermuxX11ExtraKeys implements ExtraKeysView.IExtraKeysView {
             if (keyCode == null) return;
 
             mActivity.getLorieView().sendKeyEvent(0, keyCode, true);
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             mActivity.getLorieView().sendKeyEvent(0, keyCode, false);
         } else {
             // not a control char
