@@ -62,6 +62,8 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.math.MathUtils;
 import androidx.viewpager.widget.ViewPager;
 
+import com.termux.shared.termux.extrakeys.ExtraKeysInfo;
+import com.termux.shared.termux.extrakeys.ExtraKeysView;
 import com.termux.x11.input.InputEventSender;
 import com.termux.x11.input.InputStub;
 import com.termux.x11.input.TouchInputHandler.RenderStub;
@@ -593,10 +595,17 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         return findViewById(R.id.terminal_toolbar_view_pager);
     }
 
+    //获取右侧的pager。原getPager为获取左侧的pager
+    public ViewPager getTerminalToolbarViewPager2() {
+        return findViewById(R.id.terminal_toolbar_view_pager2);
+    }
+
     private void setTerminalToolbarView() {
         final ViewPager terminalToolbarViewPager = getTerminalToolbarViewPager();
 
-        terminalToolbarViewPager.setAdapter(new X11ToolbarViewPager.PageAdapter(this, (v, k, e) -> mInputHandler.sendKeyEvent(getLorieView(), e)));
+        X11ToolbarViewPager.PageAdapter adapter = new X11ToolbarViewPager.PageAdapter(this, (v, k, e) -> mInputHandler.sendKeyEvent(getLorieView(), e));
+        adapter.side = 0;//设置左右侧
+        terminalToolbarViewPager.setAdapter(adapter);
         terminalToolbarViewPager.addOnPageChangeListener(new X11ToolbarViewPager.OnPageChangeListener(this, terminalToolbarViewPager));
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -606,12 +615,31 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         terminalToolbarViewPager.setVisibility(showNow ? View.VISIBLE : View.GONE);
         findViewById(R.id.terminal_toolbar_view_pager).requestFocus();
 
+        //设置右侧按键
+        ViewPager pager2 = getTerminalToolbarViewPager2();
+        X11ToolbarViewPager.PageAdapter adapter2 = new X11ToolbarViewPager.PageAdapter(this, (v, k, e) -> mInputHandler.sendKeyEvent(getLorieView(), e));
+        adapter2.side = 1;
+        pager2.setAdapter(adapter2);
+        pager2.addOnPageChangeListener(new X11ToolbarViewPager.OnPageChangeListener(this, pager2));
+        pager2.setVisibility(showNow ? View.VISIBLE : View.GONE);
+
+        ViewPager[] pagerArr = {terminalToolbarViewPager, pager2};
+        X11ToolbarViewPager.PageAdapter[] adapterArr = {adapter, adapter2};
+
         handler.postDelayed(() -> {
-            if (mExtraKeys != null) {
-                ViewGroup.LayoutParams layoutParams = terminalToolbarViewPager.getLayoutParams();
-                layoutParams.height = Math.round(37.5f * getResources().getDisplayMetrics().density *
-                        (mExtraKeys.getExtraKeysInfo() == null ? 0 : mExtraKeys.getExtraKeysInfo().getMatrix().length));
-                terminalToolbarViewPager.setLayoutParams(layoutParams);
+            for(int i=0; i<2; i++) {
+                ViewPager iPager = pagerArr[i];
+                X11ToolbarViewPager.PageAdapter iAdapter = adapterArr[i];
+                if (iAdapter.mExtraKeys != null) {
+                    ExtraKeysInfo info = iAdapter.mExtraKeys.getExtraKeysInfo();
+                    ViewGroup.LayoutParams layoutParams = iPager.getLayoutParams();
+//                        layoutParams.height = Math.round(37.5f * getResources().getDisplayMetrics().density *
+//                            (info == null ? 0 : info.getMatrix().length));
+                    //改为竖向，所以设置宽度为matrix中最宽的那一行。每个按钮宽度44dp
+                    layoutParams.width = Math.round(44f * getResources().getDisplayMetrics().density *
+                            (info == null ? 0 : ExtraKeysView.maximumLength(info.getMatrix())));
+                    iPager.setLayoutParams(layoutParams);
+                }
             }
         }, 200);
     }

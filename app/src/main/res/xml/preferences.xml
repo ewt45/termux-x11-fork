@@ -166,9 +166,14 @@
             android:defaultValue="false"
             android:key="filterOutWinkey" />
 
+<!--        改为左侧和右侧按键-->
         <Preference
-            android:title="Extra keys config"
+            android:title="Extra keys config(left)"
             android:key="extra_keys_config" />
+
+        <Preference
+            android:title="Extra keys config2(right)"
+            android:key="extra_keys_config2" />
     </PreferenceCategory>
 
     <PreferenceCategory android:key="other" android:title="Other">

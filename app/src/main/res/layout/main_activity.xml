@@ -257,13 +257,57 @@
             tools:ignore="HardcodedText,PxUsage,SmallSp" />
     </LinearLayout>
 
-    <androidx.viewpager.widget.ViewPager
-        android:id="@+id/terminal_toolbar_view_pager"
-        android:visibility="gone"
-        android:layout_width="match_parent"
-        android:layout_height="37.5dp"
-        android:background="@android:color/black"
-        android:layout_gravity="bottom|center"/>
+<!--    <androidx.viewpager.widget.ViewPager-->
+<!--        android:id="@+id/terminal_toolbar_view_pager"-->
+<!--        android:visibility="gone"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="37.5dp"-->
+<!--        android:background="@android:color/black"-->
+<!--        android:layout_gravity="bottom|center"/>-->
+
+<!--    尝试改到两侧-->
+    <LinearLayout
+        android:layout_gravity="left"
+        android:gravity="left"
+        android:clipChildren="false"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent">
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent">
+            <androidx.viewpager.widget.ViewPager
+                android:id="@+id/terminal_toolbar_view_pager"
+                android:visibility="gone"
+                android:layout_width="44dp"
+                android:layout_height="match_parent"
+                android:background="#80000000"
+                />
+<!--            android:layout_width="37.5dp"-->
+<!--            android:background="@android:color/black"-->
+<!--            android:transformPivotX="0dp"-->
+<!--            android:transformPivotY="0dp"-->
+<!--            android:rotation="90"-->
+<!--            android:translationX="37.5dp"-->
+        </FrameLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_gravity="right"
+        android:gravity="left"
+        android:clipChildren="false"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent">
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent">
+            <androidx.viewpager.widget.ViewPager
+                android:id="@+id/terminal_toolbar_view_pager2"
+                android:visibility="gone"
+                android:layout_width="44dp"
+                android:layout_height="match_parent"
+                android:background="#80000000" />
+        </FrameLayout>
+    </LinearLayout>
 
     <View
         android:id="@+id/activity_termux_bottom_space_view"

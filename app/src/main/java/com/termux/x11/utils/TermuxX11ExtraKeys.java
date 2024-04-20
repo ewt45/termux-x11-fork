@@ -41,9 +41,21 @@ public class TermuxX11ExtraKeys implements ExtraKeysView.IExtraKeysView {
     private boolean altDown;
     private boolean shiftDown;
     private boolean metaDown;
+    /** 同 {@link X11ToolbarViewPager.PageAdapter#side} */
+    public int side = 0;
 
     /** Defines the key for extra keys */
-    public static final String DEFAULT_IVALUE_EXTRA_KEYS = "[['ESC','/',{key: '-', popup: '|'},'HOME','UP','END','PGUP'], ['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN']]"; // Double row
+    public static final String DEFAULT_IVALUE_EXTRA_KEYS = "[]";//"[['ESC','/',{key: '-', popup: '|'},'HOME','UP','END','PGUP'], ['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN']]"; // Double row
+    /** 添加右侧按键的默认值 */
+    public static final String DEFAULT_IVALUE_EXTRA_KEYS2 = "[\n" +
+            "['HOME','END'],\n" +
+            "['/',{key: '-', popup:'|'}],\n" +
+            "['PGDN','PGUP'],\n" +
+            "['ALT','CTRL'],\n" +
+            "['UP','LEFT'],\n" +
+            "['DOWN','RIGHT'],\n" +
+            "['TAB']\n" +
+            "]";
 
     public TermuxX11ExtraKeys(@NonNull View.OnKeyListener eventlistener, MainActivity activity, ExtraKeysView extrakeysview) {
         mEventListener = eventlistener;
@@ -198,14 +210,17 @@ public class TermuxX11ExtraKeys implements ExtraKeysView.IExtraKeysView {
             // The mMap stores the extra key and style string values while loading properties
             // Check {@link #getExtraKeysInternalPropertyValueFromValue(String)} and
             // {@link #getExtraKeysStyleInternalPropertyValueFromValue(String)}
-            String extrakeys = preferences.getString("extra_keys_config", TermuxX11ExtraKeys.DEFAULT_IVALUE_EXTRA_KEYS);
+            String extrakeys = side == 0 //根据左右侧，读取不同的pref和默认值
+                    ? preferences.getString("extra_keys_config", DEFAULT_IVALUE_EXTRA_KEYS)
+                    : preferences.getString("extra_keys_config2", DEFAULT_IVALUE_EXTRA_KEYS2);
             mExtraKeysInfo = new ExtraKeysInfo(extrakeys, "extra-keys-style", ExtraKeysConstants.CONTROL_CHARS_ALIASES);
         } catch (JSONException e) {
             Toast.makeText(mActivity, "Could not load and set the \"extra-keys\" property from the properties file: " + e, Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "Could not load and set the \"extra-keys\" property from the properties file: ", e);
 
             try {
-                mExtraKeysInfo = new ExtraKeysInfo(TermuxX11ExtraKeys.DEFAULT_IVALUE_EXTRA_KEYS, "default", ExtraKeysConstants.CONTROL_CHARS_ALIASES);
+                mExtraKeysInfo = new ExtraKeysInfo(
+                        side == 0 ? DEFAULT_IVALUE_EXTRA_KEYS : DEFAULT_IVALUE_EXTRA_KEYS2, "default", ExtraKeysConstants.CONTROL_CHARS_ALIASES);
             } catch (JSONException e2) {
                 Toast.makeText(mActivity, "Can't create default extra keys", Toast.LENGTH_LONG).show();
                 Log.e(LOG_TAG, "Could create default extra keys: ", e);

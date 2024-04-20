@@ -26,7 +26,9 @@ public class X11ToolbarViewPager {
 
         final MainActivity mActivity;
         private final View.OnKeyListener mEventListener;
-
+        public TermuxX11ExtraKeys mExtraKeys; //由于现在有两个pager，不能再使用activity中的唯一一个extraKey变量
+        /** 标明是左侧还是右侧。0为左侧1为右侧. 分别对应pref的key是extra_keys_config 和 extra_keys_config2 */
+        public int side = 0;
         public PageAdapter(MainActivity activity, View.OnKeyListener listen) {
             this.mActivity = activity;
             this.mEventListener = listen;
@@ -51,12 +53,19 @@ public class X11ToolbarViewPager {
             if (position == 0) {
                 layout = inflater.inflate(R.layout.view_terminal_toolbar_extra_keys, collection, false);
                 ExtraKeysView extraKeysView = (ExtraKeysView) layout;
-                mActivity.mExtraKeys = new TermuxX11ExtraKeys(mEventListener, mActivity, extraKeysView);
+                //从activity属性改为自身属性。并设置左右侧
+                mExtraKeys = new TermuxX11ExtraKeys(mEventListener, mActivity, extraKeysView);
+                mExtraKeys.side = this.side;
                 int mTerminalToolbarDefaultHeight = mActivity.getTerminalToolbarViewPager().getLayoutParams().height;
                 int height = mTerminalToolbarDefaultHeight *
-                        ((mActivity.mExtraKeys.getExtraKeysInfo() == null) ? 0 : mActivity.mExtraKeys.getExtraKeysInfo().getMatrix().length);
-                extraKeysView.reload(mActivity.mExtraKeys.getExtraKeysInfo(), height);
-                extraKeysView.setExtraKeysViewClient(mActivity.mExtraKeys);
+                        ((mExtraKeys.getExtraKeysInfo() == null) ? 0 : mExtraKeys.getExtraKeysInfo().getMatrix().length);
+                extraKeysView.reload(mExtraKeys.getExtraKeysInfo(), height);
+                //按钮在reload里被设置为黑色背景。虽然下面处理点击事件时会将其设置为透明背景，
+                // 但初次添加后未点击过的按钮还是黑色。所以手动设置一遍
+                for(int i=0; i<extraKeysView.getChildCount(); i++)
+                    if(extraKeysView.getChildAt(i) instanceof Button)
+                        extraKeysView.getChildAt(i).setBackgroundColor(0x00000000);
+                extraKeysView.setExtraKeysViewClient(mExtraKeys);
                 extraKeysView.setOnHoverListener((v, e) -> true);
                 extraKeysView.setOnGenericMotionListener((v, e) -> true);
             } else {

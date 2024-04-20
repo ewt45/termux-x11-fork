@@ -259,6 +259,37 @@ public class LoriePreferences extends AppCompatActivity {
                         .show();
             }
 
+            //添加右侧按键信息
+            String extraKeysRightKey = "extra_keys_config2";
+            if (extraKeysRightKey.contentEquals(preference.getKey())) {
+                @SuppressLint("InflateParams")
+                View view = getLayoutInflater().inflate(R.layout.extra_keys_config, null, false);
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+                EditText config = view.findViewById(R.id.extra_keys_config);
+                config.setTypeface(Typeface.MONOSPACE);
+                config.setText(preferences.getString(extraKeysRightKey, TermuxX11ExtraKeys.DEFAULT_IVALUE_EXTRA_KEYS2));
+                TextView desc = view.findViewById(R.id.extra_keys_config_description);
+                desc.setLinksClickable(true);
+                desc.setText(R.string.extra_keys_config_desc);
+                desc.setMovementMethod(LinkMovementMethod.getInstance());
+                new android.app.AlertDialog.Builder(getActivity())
+                        .setView(view)
+                        .setTitle(preference.getTitle())
+                        .setPositiveButton("OK",
+                                (dialog, whichButton) -> {
+                                    String text = config.getText().toString();
+                                    text = text.length() > 0 ? text : TermuxX11ExtraKeys.DEFAULT_IVALUE_EXTRA_KEYS2;
+                                    preferences
+                                            .edit()
+                                            .putString(extraKeysRightKey, text)
+                                            .apply();
+                                }
+                        )
+                        .setNegativeButton("Cancel", (dialog, whichButton) -> dialog.dismiss())
+                        .create()
+                        .show();
+            }
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && "requestNotificationPermission".contentEquals(preference.getKey()))
                 ActivityCompat.requestPermissions(requireActivity(), new String[]{ POST_NOTIFICATIONS }, 101);
 
