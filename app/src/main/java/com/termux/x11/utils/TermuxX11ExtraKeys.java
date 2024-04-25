@@ -76,14 +76,31 @@ public class TermuxX11ExtraKeys implements ExtraKeysView.IExtraKeysView {
                 } else if (SpecialButton.FN.getKey().equals(key)) {
                     fnDown = true;
                 } else {
-                    ctrlDown = false;
-                    altDown = false;
-                    shiftDown = false;
-                    metaDown = false;
-                    fnDown = false;
+//                    ctrlDown = false;
+//                    altDown = false;
+//                    shiftDown = false;
+//                    metaDown = false;
+//                    fnDown = false;
                 }
+                //目前的组合键逻辑有问题。比如ctrl+c，目前的逻辑是
+                //1. for循环第一次key是ctrl，第二次是c。调用两次 onLorieExtraKeyButtonClick -> onTerminalExtraKeyButtonClick
+                // onClick函数内部逻辑是
+                // - 先看修饰键参数，若与自身成员变量的缓存值不同，则更新缓存，并发送修饰符按键事件
+                // - 再看key，如果为特殊按键（非字母），则发送对应按键事件
+                // - 否则将key作为文本输入
+                //2. 因此，第一次ctrl传给onClick，会按下ctrl键，并发送“CTRL”文本。第二次c传给onlick，会先松开CTRL，再发送c按键。
+                //3. 修改：
+                // - onLorieExtraKeyButtonClick发送文本事件前检测，若超过一个字符则不发送。
+                // - 此处for循环不每次都重置（松开）修饰键。等循环结束，再根据需要发送松开事件。
                 onLorieExtraKeyButtonClick(view, key, ctrlDown, altDown, shiftDown, metaDown, fnDown);
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
+            if(ctrlDown || metaDown || altDown || shiftDown || fnDown)
+                onLorieExtraKeyButtonClick(view, "", false, false, false, false, false);
         } else {
             onLorieExtraKeyButtonClick(view, buttonInfo.key, false, false, false, false, false);
         }
@@ -121,7 +138,7 @@ public class TermuxX11ExtraKeys implements ExtraKeysView.IExtraKeysView {
                 e.printStackTrace();
             }
             mActivity.getLorieView().sendKeyEvent(0, keyCode, false);
-        } else {
+        } else if(key.length() == 1) {
             // not a control char
             mActivity.getLorieView().sendTextEvent(key.getBytes(UTF_8));
         }
