@@ -21,13 +21,13 @@ jobs:
     steps:
     - name: Install dependencies
       run: |
-        sudo apt update && sudo apt install -y libarchive-tools binutils-aarch64-linux-gnu binutils-arm-linux-gnueabihf
+        sudo apt update && sudo apt install -y libarchive-tools
     - name: Clone repository
       uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: Validation
-      uses: gradle/wrapper-validation-action@v2
+      uses: gradle/wrapper-validation-action@v3
       
     - name: Java setup
       uses: actions/setup-java@v4

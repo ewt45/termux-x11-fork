@@ -88,7 +88,6 @@ from The Open Group.
 extern DeviceIntPtr lorieMouse, lorieKeyboard;
 
 typedef struct {
-    DestroyPixmapProcPtr DestroyPixmap;
     CloseScreenProcPtr CloseScreen;
     CreateScreenResourcesProcPtr CreateScreenResources;
 
@@ -115,7 +114,6 @@ ScreenPtr pScreenPtr;
 static lorieScreenInfo lorieScreen = { .root.width = 1280, .root.height = 1024 };
 static lorieScreenInfoPtr pvfb = &lorieScreen;
 static char *xstartup = NULL;
-static DevPrivateKeyRec loriePixmapPrivateKeyRec;
 
 static Bool TrueNoop() { return TRUE; }
 static Bool FalseNoop() { return FALSE; }
@@ -331,7 +329,7 @@ static void lorieUpdateBuffer(void) {
         d0.width = pScreenPtr->width;
         d0.height = pScreenPtr->height;
         d0.layers = 1;
-        d0.usage = USAGE;
+        d0.usage = USAGE | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE;
         d0.format = pvfb->root.flip
                 ? AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM
                 : AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM;
@@ -411,7 +409,7 @@ static inline Bool loriePixmapLock(PixmapPtr pixmap) {
     }
 
     AHardwareBuffer_describe(pvfb->root.buffer, &desc);
-    status = AHardwareBuffer_lock(pvfb->root.buffer, desc.usage, -1, NULL, &data);
+    status = AHardwareBuffer_lock(pvfb->root.buffer, USAGE, -1, NULL, &data);
     pvfb->root.locked = status == 0;
     if (pvfb->root.locked)
         pixmap->drawable.pScreen->ModifyPixmapHeader(pixmap, desc.width, desc.height, -1, -1, desc.stride * 4, data);
@@ -469,26 +467,6 @@ lorieCloseScreen(ScreenPtr pScreen) {
     unwrap(pvfb, pScreen, CloseScreen)
     // No need to call fbDestroyPixmap since AllocatePixmap sets pixmap as PRIVATE_SCREEN so it is destroyed automatically.
     return pScreen->CloseScreen(pScreen);
-}
-
-static Bool
-lorieDestroyPixmap(PixmapPtr pPixmap) {
-    Bool ret;
-    void *ptr = NULL;
-    size_t size = 0;
-
-    if (pPixmap->refcnt == 1) {
-        ptr = dixLookupPrivate(&pPixmap->devPrivates, &loriePixmapPrivateKeyRec);
-        size = pPixmap->devKind * pPixmap->drawable.height;
-    }
-
-    unwrap(pvfb, pScreenPtr, DestroyPixmap)
-    ret = (*pScreenPtr->DestroyPixmap) (pPixmap);
-    wrap(pvfb, pScreenPtr, DestroyPixmap, lorieDestroyPixmap)
-
-    if (ptr)
-        munmap(ptr, size);
-    return ret;
 }
 
 static Bool
@@ -562,47 +540,6 @@ static Bool resetRootCursor(unused ClientPtr pClient, unused void *closure) {
     return TRUE;
 }
 
-static PixmapPtr loriePixmapFromFds(ScreenPtr screen, CARD8 num_fds, const int *fds, CARD16 width, CARD16 height,
-                                    const CARD32 *strides, const CARD32 *offsets, CARD8 depth, unused CARD8 bpp, CARD64 modifier) {
-    const CARD64 RAW_MMAPPABLE_FD = 1274;
-    PixmapPtr pixmap;
-    void *addr = NULL;
-    if (num_fds != 1 || modifier != RAW_MMAPPABLE_FD) {
-        log(ERROR, "DRI3: More than 1 fd or modifier is not RAW_MMAPPABLE_FD");
-        return NULL;
-    }
-
-    addr = mmap(NULL, strides[0] * height, PROT_READ, MAP_SHARED, fds[0], offsets[0]);
-    if (!addr || addr == MAP_FAILED) {
-        log(ERROR, "DRI3: mmap failed");
-        return NULL;
-    }
-
-    pixmap = fbCreatePixmap(screen, 0, 0, depth, 0);
-    if (!pixmap) {
-        log(ERROR, "DRI3: failed to create pixmap");
-        munmap(addr, strides[0] * height);
-        return NULL;
-    }
-
-    dixSetPrivate(&pixmap->devPrivates, &loriePixmapPrivateKeyRec, addr);
-    screen->ModifyPixmapHeader(pixmap, width, height, 0, 0, strides[0], addr);
-
-    return pixmap;
-}
-
-static int lorieGetFormats(unused ScreenPtr screen, CARD32 *num_formats, CARD32 **formats) {
-    *num_formats = 0;
-    *formats = NULL;
-    return TRUE;
-}
-
-static int lorieGetModifiers(unused ScreenPtr screen, unused uint32_t format, uint32_t *num_modifiers, uint64_t **modifiers) {
-    *num_modifiers = 0;
-    *modifiers = NULL;
-    return TRUE;
-}
-
 static Bool
 lorieScreenInit(ScreenPtr pScreen, unused int argc, unused char **argv) {
     static int timerFd = -1;
@@ -620,30 +557,20 @@ lorieScreenInit(ScreenPtr pScreen, unused int argc, unused char **argv) {
     miSetZeroLineBias(pScreen, 0);
     pScreen->blackPixel = 0;
     pScreen->whitePixel = 1;
-    static dri3_screen_info_rec dri3Info = {
-            .version = 2,
-            .fds_from_pixmap = FalseNoop,
-            .pixmap_from_fds = loriePixmapFromFds,
-            .get_formats = lorieGetFormats,
-            .get_modifiers = lorieGetModifiers,
-            .get_drawable_modifiers = FalseNoop
-    };
 
     if (FALSE
           || !miSetVisualTypesAndMasks(24, ((1 << TrueColor) | (1 << DirectColor)), 8, TrueColor, 0xFF0000, 0x00FF00, 0x0000FF)
           || !miSetPixmapDepths()
           || !fbScreenInit(pScreen, NULL, pvfb->root.width, pvfb->root.height, monitorResolution, monitorResolution, 0, 32)
+          || !lorieInitDri3(pScreen)
           || !fbPictureInit(pScreen, 0, 0)
           || !lorieRandRInit(pScreen)
           || !miPointerInitialize(pScreen, &loriePointerSpriteFuncs, &loriePointerCursorFuncs, TRUE)
-          || !fbCreateDefColormap(pScreen)
-          || !dri3_screen_init(pScreen, &dri3Info)
-          || !dixRegisterPrivateKey(&loriePixmapPrivateKeyRec, PRIVATE_PIXMAP, 0))
+          || !fbCreateDefColormap(pScreen))
         return FALSE;
 
     wrap(pvfb, pScreen, CreateScreenResources, lorieCreateScreenResources)
     wrap(pvfb, pScreen, CloseScreen, lorieCloseScreen)
-    wrap(pvfb, pScreen, DestroyPixmap, lorieDestroyPixmap)
 
     QueueWorkProc(resetRootCursor, NULL, NULL);
     ShmRegisterFbFuncs(pScreen);
