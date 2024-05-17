@@ -79,6 +79,7 @@ import java.util.Objects;
 @SuppressWarnings({"deprecation", "unused"})
 public class MainActivity extends AppCompatActivity implements View.OnApplyWindowInsetsListener {
     static final String ACTION_STOP = "com.termux.x11.ACTION_STOP";
+    static final String REQUEST_LAUNCH_EXTERNAL_DISPLAY = "request_launch_external_display";
 
     public static Handler handler = new Handler();
     FrameLayout frm;
@@ -99,9 +100,6 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
     public boolean dexMetaKeyCapture = false;
     private static final int KEY_BACK = 158;
 
-    private static boolean oldFullscreen = false;
-    private static boolean oldHideCutout = false;
-
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @SuppressLint("UnspecifiedRegisterReceiverFlag")
         @Override
@@ -116,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
                         CmdEntryPoint.requestConnection();
 
                         Log.v("Lorie", "Disconnected");
-                        runOnUiThread(() -> clientConnectedStateChanged(false));
+                        runOnUiThread(() -> clientConnectedStateChanged(false)); //recreate()); //onPreferencesChanged(""));
                     }, 0);
 
                     onReceiveConnection();
@@ -156,10 +154,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
             e.putString("touchMode", "1");
             e.apply();
         }
-
-        oldFullscreen = preferences.getBoolean("fullscreen", false);
-        oldHideCutout = preferences.getBoolean("hideCutout", false);
-
+        
         preferences.registerOnSharedPreferenceChangeListener((sharedPreferences, key) -> onPreferencesChanged(key));
 
         getWindow().setFlags(FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS | FLAG_KEEP_SCREEN_ON | FLAG_TRANSLUCENT_STATUS, 0);
@@ -751,17 +746,9 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         Window window = getWindow();
         View decorView = window.getDecorView();
         boolean fullscreen = p.getBoolean("fullscreen", false);
-        boolean hideCutout = p.getBoolean("hideCutout", false);
         boolean reseed = p.getBoolean("Reseed", true);
 
-        if (oldHideCutout != hideCutout || oldFullscreen != fullscreen) {
-            oldHideCutout = hideCutout;
-            oldFullscreen = fullscreen;
-            // For some reason cutout or fullscreen change makes layout calculations wrong and invalid.
-            // I did not find simple and reliable way to fix it so it is better to start from the beginning.
-            recreate();
-            return;
-        }
+        fullscreen = fullscreen || getIntent().getBooleanExtra(REQUEST_LAUNCH_EXTERNAL_DISPLAY, false);
 
         int requestedOrientation = p.getBoolean("forceLandscape", false) ?
                 ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE : ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
@@ -770,7 +757,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
 
         if (hasFocus) {
             if (SDK_INT >= VERSION_CODES.P) {
-                if (hideCutout)
+                if (p.getBoolean("hideCutout", false))
                     getWindow().getAttributes().layoutInDisplayCutoutMode = (SDK_INT >= VERSION_CODES.R) ?
                             LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS :
                             LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
