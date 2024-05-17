@@ -5,6 +5,7 @@ import static android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.graphics.Rect;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.view.View;
 import android.app.Activity;
@@ -23,7 +24,7 @@ public class FullscreenWorkaround {
 
     private FullscreenWorkaround(Activity activity) {
         mActivity = activity;
-        FrameLayout content = activity.findViewById(android.R.id.content);
+        ViewGroup content = activity.findViewById(android.R.id.content);
         content.getViewTreeObserver().addOnGlobalLayoutListener(this::possiblyResizeChildOfContent);
     }
 
@@ -38,8 +39,8 @@ public class FullscreenWorkaround {
         )
             return;
 
-        FrameLayout content = (FrameLayout)  ((FrameLayout) mActivity.findViewById(android.R.id.content)).getChildAt(0);
-        FrameLayout.LayoutParams frameLayoutParams = (FrameLayout.LayoutParams) content.getLayoutParams();
+        ViewGroup content = (ViewGroup)  ((ViewGroup) mActivity.findViewById(android.R.id.content)).getChildAt(0);
+        ViewGroup.LayoutParams frameLayoutParams = (ViewGroup.LayoutParams) content.getLayoutParams();
 
         int usableHeightNow = computeUsableHeight(content);
         if (usableHeightNow != usableHeightPrevious) {
