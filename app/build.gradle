@@ -1,11 +1,11 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.library' //application
 
 android {
     namespace 'com.termux.x11'
     //noinspection GrDeprecatedAPIUsage
     compileSdkVersion 34
     defaultConfig {
-        applicationId "com.termux.x11"
+//        applicationId "com.termux.x11"
         minSdkVersion 26
         targetSdkVersion 34
         versionCode 15

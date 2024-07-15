@@ -15,9 +15,14 @@ public class Loader {
      */
     public static void main(String[] args) {
         try {
+            //将CmdEntryPoint里连接的应用改为termux
+            String pkgName = android.system.Os.getenv("TERMUX_APP__PACKAGE_NAME");
+            //将要连接的应用改为termux
+            android.system.Os.setenv("TERMUX_X11_OVERRIDE_PACKAGE", pkgName, true);
+            //将两个BuildConfig.APPLICATION_ID改为termux
             android.content.pm.PackageInfo targetInfo = (android.os.Build.VERSION.SDK_INT <= 32) ?
-                    android.app.ActivityThread.getPackageManager().getPackageInfo(BuildConfig.APPLICATION_ID, android.content.pm.PackageManager.GET_SIGNATURES, 0) :
-                    android.app.ActivityThread.getPackageManager().getPackageInfo(BuildConfig.APPLICATION_ID, (long) android.content.pm.PackageManager.GET_SIGNATURES, 0);
+                    android.app.ActivityThread.getPackageManager().getPackageInfo(pkgName, android.content.pm.PackageManager.GET_SIGNATURES, 0) :
+                    android.app.ActivityThread.getPackageManager().getPackageInfo(pkgName, (long) android.content.pm.PackageManager.GET_SIGNATURES, 0);
             assert targetInfo != null : BuildConfig.packageNotInstalledErrorText.replace("ARCH", android.os.Build.SUPPORTED_ABIS[0]);
             assert targetInfo.signatures.length == 1 && BuildConfig.SIGNATURE == targetInfo.signatures[0].hashCode() : BuildConfig.packageSignatureMismatchErrorText;
 
