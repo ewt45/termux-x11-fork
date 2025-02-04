@@ -6,7 +6,7 @@ if [ "$(getprop ro.build.version.sdk)" -ge "34" ]; then
   exec /system/bin/app_process -Xnoimage-dex2oat / com.termux.x11.Loader "$@"
 fi
 
-COMMAND=("am" "broadcast" "-a" "com.termux.x11.CHANGE_PREFERENCE" "-p" "com.termux.x11")
+COMMAND=("am" "broadcast" "-a" "com.termux.x11.CHANGE_PREFERENCE" "-p" "com.termux")
 help() {
   echo "$0 [list] {key:value} [{key2:value2}]..."
   exit 1
