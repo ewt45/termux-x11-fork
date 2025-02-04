@@ -192,7 +192,8 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
         static {
             try {
                 //noinspection JavaReflectionMemberAccess
-                onSetInitialValue = Preference.class.getMethod("onSetInitialValue", boolean.class, Object.class);
+                onSetInitialValue = Preference.class.getDeclaredMethod("onSetInitialValue", boolean.class, Object.class);
+                onSetInitialValue.setAccessible(true);
             } catch (NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
@@ -270,7 +271,12 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
             }
 
             with("showAdditionalKbd", p -> p.setLayoutResource(R.layout.preference));
-            with("version", p -> p.setSummary(BuildConfig.VERSION_NAME));
+            try {
+                String versionName = requireContext().getPackageManager().getPackageInfo(requireContext().getPackageName(), 0).versionName;
+                with("version", p -> p.setSummary(versionName));
+            } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+                throw new RuntimeException(e);
+            }
 
             setSummary("displayStretch", R.string.pref_summary_requiresExactOrCustom);
             setSummary("adjustResolution", R.string.pref_summary_requiresExactOrCustom);
