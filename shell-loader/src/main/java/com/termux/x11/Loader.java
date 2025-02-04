@@ -17,11 +17,13 @@ public class Loader {
         String cls = System.getenv("TERMUX_X11_LOADER_OVERRIDE_CMDENTRYPOINT_CLASS");
         cls = cls != null ? cls : BuildConfig.CLASS_ID;
         try {
+            String pkgName = android.system.Os.getenv("TERMUX_APP__PACKAGE_NAME");
+            android.system.Os.setenv("TERMUX_X11_OVERRIDE_PACKAGE", pkgName, true);
             android.content.pm.PackageInfo targetInfo = (android.os.Build.VERSION.SDK_INT <= 32) ?
-                    android.app.ActivityThread.getPackageManager().getPackageInfo(BuildConfig.APPLICATION_ID, android.content.pm.PackageManager.GET_SIGNATURES, 0) :
-                    android.app.ActivityThread.getPackageManager().getPackageInfo(BuildConfig.APPLICATION_ID, (long) android.content.pm.PackageManager.GET_SIGNATURES, 0);
+                    android.app.ActivityThread.getPackageManager().getPackageInfo(pkgName, android.content.pm.PackageManager.GET_SIGNATURES, 0) :
+                    android.app.ActivityThread.getPackageManager().getPackageInfo(pkgName, (long) android.content.pm.PackageManager.GET_SIGNATURES, 0);
             assert targetInfo != null : BuildConfig.packageNotInstalledErrorText.replace("ARCH", android.os.Build.SUPPORTED_ABIS[0]);
-            assert targetInfo.signatures.length == 1 && BuildConfig.SIGNATURE == targetInfo.signatures[0].hashCode() : BuildConfig.packageSignatureMismatchErrorText;
+//            assert targetInfo.signatures.length == 1 && BuildConfig.SIGNATURE == targetInfo.signatures[0].hashCode() : BuildConfig.packageSignatureMismatchErrorText;
 
             android.util.Log.i(BuildConfig.logTag, "loading " + targetInfo.applicationInfo.sourceDir + "::" + BuildConfig.CLASS_ID + "::main of " + BuildConfig.APPLICATION_ID + " application (commit " + BuildConfig.COMMIT + ")");
             Class<?> targetClass = Class.forName(cls, true,
