@@ -30,7 +30,7 @@ public class KeyInterceptor extends AccessibilityService {
 
     public static void launch(@NonNull Context ctx) {
         try {
-            Settings.Secure.putString(ctx.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "com.termux/.x11.utils.KeyInterceptor");
+            Settings.Secure.putString(ctx.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, MainActivity.HOST_PKG_NAME + "/com.termux.x11.utils.KeyInterceptor");
             Settings.Secure.putString(ctx.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
             launchedAutomatically = true;
         } catch (SecurityException e) {
@@ -38,7 +38,7 @@ public class KeyInterceptor extends AccessibilityService {
                     .setTitle("Permission denied")
                     .setMessage("Android requires WRITE_SECURE_SETTINGS permission to start accessibility service automatically.\n" +
                             "Please, launch this command using ADB:\n" +
-                            "adb shell pm grant com.termux android.permission.WRITE_SECURE_SETTINGS")
+                            "adb shell pm grant " + MainActivity.HOST_PKG_NAME + " android.permission.WRITE_SECURE_SETTINGS")
                     .setNegativeButton("OK", null)
                     .create()
                     .show();

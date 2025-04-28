@@ -76,6 +76,7 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity {
     public static final String ACTION_STOP = "com.termux.x11.ACTION_STOP";
     public static final String ACTION_CUSTOM = "com.termux.x11.ACTION_CUSTOM";
+    public static String HOST_PKG_NAME = "com.termux";// 添加到的app的包名
 
     public static Handler handler = new Handler();
     FrameLayout frm;

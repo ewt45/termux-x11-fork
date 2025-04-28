@@ -190,8 +190,8 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
         if (libPath != null) {
             try {
                 android.content.pm.PackageInfo targetInfo = (Build.VERSION.SDK_INT <= 32) ?
-                        android.app.ActivityThread.getPackageManager().getPackageInfo("com.termux", android.content.pm.PackageManager.GET_SIGNATURES, 0) :
-                        android.app.ActivityThread.getPackageManager().getPackageInfo("com.termux", (long) android.content.pm.PackageManager.GET_SIGNATURES, 0);
+                        android.app.ActivityThread.getPackageManager().getPackageInfo(MainActivity.HOST_PKG_NAME, android.content.pm.PackageManager.GET_SIGNATURES, 0) :
+                        android.app.ActivityThread.getPackageManager().getPackageInfo(MainActivity.HOST_PKG_NAME, (long) android.content.pm.PackageManager.GET_SIGNATURES, 0);
                 libPath = targetInfo.applicationInfo.nativeLibraryDir + "/libXlorie.so";
                 System.load(libPath);
             } catch (Exception e) {
