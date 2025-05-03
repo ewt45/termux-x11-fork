@@ -51,7 +51,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.20"
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
     implementation 'androidx.preference:preference:1.2.1'
-    compileOnly project(':shell-loader:stub')
+    compileOnly project(':app:stub')
 }
 afterEvaluate {
     tasks.register("generatePrefs") {
