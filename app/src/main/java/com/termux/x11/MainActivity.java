@@ -223,12 +223,6 @@ public class MainActivity extends AppCompatActivity {
 
         inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 
-        // Taken from Stackoverflow answer https://stackoverflow.com/questions/7417123/android-how-to-adjust-layout-in-full-screen-mode-when-softkeyboard-is-visible/7509285#
-        FullscreenWorkaround.assistActivity(this);
-        mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotification = buildNotification();
-        mNotificationManager.notify(mNotificationId, mNotification);
-
         if (tryConnect()) {
             final View content = findViewById(android.R.id.content);
             content.getViewTreeObserver().addOnPreDrawListener(mOnPredrawListener);
@@ -606,33 +600,17 @@ public class MainActivity extends AppCompatActivity {
 
         lorieView.requestLayout();
         lorieView.invalidate();
-
-        for (StatusBarNotification notification: mNotificationManager.getActiveNotifications())
-            if (notification.getId() == mNotificationId) {
-                mNotification = buildNotification();
-                mNotificationManager.notify(mNotificationId, mNotification);
-            }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
-        mNotification = buildNotification();
-        mNotificationManager.notify(mNotificationId, mNotification);
-
-        setTerminalToolbarView();
         getLorieView().requestFocus();
     }
 
     @Override
     public void onPause() {
         inputMethodManager.hideSoftInputFromWindow(getWindow().getDecorView().getRootView().getWindowToken(), 0);
-
-        for (StatusBarNotification notification: mNotificationManager.getActiveNotifications())
-            if (notification.getId() == mNotificationId)
-                mNotificationManager.cancel(mNotificationId);
-
         super.onPause();
     }
 
@@ -694,7 +672,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @SuppressLint("ObsoleteSdkInt")
-    Notification buildNotification() {
+    protected Notification buildNotification() {
         NotificationCompat.Builder builder =  new NotificationCompat.Builder(this, getNotificationChannel(mNotificationManager))
                 .setContentTitle("Termux:X11")
                 .setSmallIcon(R.drawable.ic_x11_icon)

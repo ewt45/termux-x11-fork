@@ -2,4 +2,6 @@
 <resources>
     <public name="ic_x11_icon" type="drawable" />
     <public name="AppTheme" type="style" />
+    <public name="stub" type="id" />
+    <public name="frame" type="id" />
 </resources>

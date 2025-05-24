@@ -183,28 +183,6 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
         handler = new Handler();
         ctx = createContext();
 
-        String path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libXlorie.so";
-        ClassLoader loader = CmdEntryPoint.class.getClassLoader();
-        URL res = loader != null ? loader.getResource(path) : null;
-        String libPath = res != null ? res.getFile().replace("file:", "") : null;
-        if (libPath != null) {
-            try {
-                android.content.pm.PackageInfo targetInfo = (Build.VERSION.SDK_INT <= 32) ?
-                        android.app.ActivityThread.getPackageManager().getPackageInfo(MainActivity.HOST_PKG_NAME, android.content.pm.PackageManager.GET_SIGNATURES, 0) :
-                        android.app.ActivityThread.getPackageManager().getPackageInfo(MainActivity.HOST_PKG_NAME, (long) android.content.pm.PackageManager.GET_SIGNATURES, 0);
-                libPath = targetInfo.applicationInfo.nativeLibraryDir + "/libXlorie.so";
-                System.load(libPath);
-            } catch (Exception e) {
-                Log.e("CmdEntryPoint", "Failed to dlopen " + libPath, e);
-                System.err.println("Failed to load native library. Did you install the right apk? Try the universal one.");
-                System.exit(134);
-            }
-        } else {
-            // It is critical only when it is not running in Android application process
-            if (MainActivity.getInstance() == null) {
-                System.err.println("Failed to acquire native library. Did you install the right apk? Try the universal one.");
-                System.exit(134);
-            }
-        }
+        System.loadLibrary("Xlorie");
     }
 }
