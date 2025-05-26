@@ -32,7 +32,7 @@
             android:background="@android:color/black"
             android:gravity="center_horizontal|center_vertical"
             android:orientation="vertical"
-            android:visibility="visible">
+            android:visibility="gone">
 
             <ImageView
                 android:id="@+id/x11_image"
@@ -98,6 +98,7 @@
 
     <LinearLayout
         android:id="@+id/mouse_helper_visibility"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:translationX="0px"
@@ -181,6 +182,7 @@
 
     <LinearLayout
         android:id="@+id/mouse_buttons"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center"

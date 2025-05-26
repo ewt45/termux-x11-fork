@@ -79,7 +79,9 @@ public class MainActivity extends AppCompatActivity {
     public static String HOST_PKG_NAME = "com.termux";// 添加到的app的包名
 
     public static Handler handler = new Handler();
-    FrameLayout frm;
+    public FrameLayout frm;
+    // TODO 暂时将lorieView存为成员变量，因为放到compose中后无法通过findViewById搜索到了
+    public LorieView lorieView;
     private TouchInputHandler mInputHandler;
     protected ICmdEntryInterface service = null;
     public TermuxX11ExtraKeys mExtraKeys;
@@ -172,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.help_button).setOnClickListener((l) -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/termux/termux-x11/blob/master/README.md#running-graphical-applications"))));
         findViewById(R.id.exit_button).setOnClickListener((l) -> finish());
 
-        LorieView lorieView = findViewById(R.id.lorieView);
+        lorieView = findViewById(R.id.lorieView);
         View lorieParent = (View) lorieView.getParent();
 
         mInputHandler = new TouchInputHandler(this, new InputEventSender(lorieView));
@@ -230,11 +232,6 @@ public class MainActivity extends AppCompatActivity {
         }
         onPreferencesChanged("");
 
-        toggleExtraKeys(false, false);
-
-        initStylusAuxButtons();
-        initMouseAuxButtons();
-
         if (SDK_INT >= VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PERMISSION_GRANTED
                 && !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
@@ -242,7 +239,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         onReceiveConnection(getIntent());
-        findViewById(android.R.id.content).addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> makeSureHelpersAreVisibleAndInScreenBounds());
     }
 
     @Override
@@ -252,145 +248,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //Register the needed events to handle stylus as left, middle and right click
-    @SuppressLint("ClickableViewAccessibility")
-    private void initStylusAuxButtons() {
-        final ViewPager pager = getTerminalToolbarViewPager();
-        boolean stylusMenuEnabled = prefs.showStylusClickOverride.get() && LorieView.connected();
-        final float menuUnselectedTrasparency = 0.66f;
-        final float menuSelectedTrasparency = 1.0f;
-        Button left = findViewById(R.id.button_left_click);
-        Button right = findViewById(R.id.button_right_click);
-        Button middle = findViewById(R.id.button_middle_click);
-        Button visibility = findViewById(R.id.button_visibility);
-        LinearLayout overlay = findViewById(R.id.mouse_helper_visibility);
-        LinearLayout buttons = findViewById(R.id.mouse_helper_secondary_layer);
-        overlay.setOnTouchListener((v, e) -> true);
-        overlay.setOnHoverListener((v, e) -> true);
-        overlay.setOnGenericMotionListener((v, e) -> true);
-        overlay.setOnCapturedPointerListener((v, e) -> true);
-        overlay.setVisibility(stylusMenuEnabled ? View.VISIBLE : View.GONE);
-        View.OnClickListener listener = view -> {
-            TouchInputHandler.STYLUS_INPUT_HELPER_MODE = (view.equals(left) ? 1 : (view.equals(middle) ? 2 : (view.equals(right) ? 4 : 0)));
-            left.setAlpha((TouchInputHandler.STYLUS_INPUT_HELPER_MODE == 1) ? menuSelectedTrasparency : menuUnselectedTrasparency);
-            middle.setAlpha((TouchInputHandler.STYLUS_INPUT_HELPER_MODE == 2) ? menuSelectedTrasparency : menuUnselectedTrasparency);
-            right.setAlpha((TouchInputHandler.STYLUS_INPUT_HELPER_MODE == 4) ? menuSelectedTrasparency : menuUnselectedTrasparency);
-            visibility.setAlpha(menuUnselectedTrasparency);
-        };
+    @Deprecated
+    private void initStylusAuxButtons() { }
 
-        left.setOnClickListener(listener);
-        middle.setOnClickListener(listener);
-        right.setOnClickListener(listener);
+    @Deprecated
+    private void showStylusAuxButtons(boolean show) { }
 
-        visibility.setOnClickListener(view -> {
-            if (buttons.getVisibility() == View.VISIBLE) {
-                buttons.setVisibility(View.GONE);
-                visibility.setAlpha(menuUnselectedTrasparency);
-                int m = TouchInputHandler.STYLUS_INPUT_HELPER_MODE;
-                visibility.setText(m == 1 ? "L" : (m == 2 ? "M" : (m == 3 ? "R" : "U")));
-            } else {
-                buttons.setVisibility(View.VISIBLE);
-                visibility.setAlpha(menuUnselectedTrasparency);
-                visibility.setText("X");
+    @Deprecated
+    private void makeSureHelpersAreVisibleAndInScreenBounds() { }
 
-                //Calculate screen border making sure btn is fully inside the view
-                float maxX = frm.getWidth() - 4 * left.getWidth();
-                float maxY = frm.getHeight() - 4 * left.getHeight();
-                if (pager.getVisibility() == View.VISIBLE)
-                    maxY -= pager.getHeight();
+    @Deprecated
+    public void toggleStylusAuxButtons() { }
 
-                //Make sure the Stylus menu is fully inside the screen
-                overlay.setX(MathUtils.clamp(overlay.getX(), 0, maxX));
-                overlay.setY(MathUtils.clamp(overlay.getY(), 0, maxY));
+    @Deprecated
+    private void showMouseAuxButtons(boolean show) { }
 
-                int m = TouchInputHandler.STYLUS_INPUT_HELPER_MODE;
-                listener.onClick(m == 1 ? left : (m == 2 ? middle : (m == 3 ? right : left)));
-            }
-        });
-        //Simulated mouse click 1 = left , 2 = middle , 3 = right
-        TouchInputHandler.STYLUS_INPUT_HELPER_MODE = 1;
-        listener.onClick(left);
-
-        visibility.setOnLongClickListener(v -> {
-            v.startDragAndDrop(ClipData.newPlainText("", ""), new View.DragShadowBuilder(visibility) {
-                public void onDrawShadow(@NonNull Canvas canvas) {}
-            }, null, View.DRAG_FLAG_GLOBAL);
-
-            frm.setOnDragListener((v2, event) -> {
-                //Calculate screen border making sure btn is fully inside the view
-                float maxX = frm.getWidth() - visibility.getWidth();
-                float maxY = frm.getHeight() - visibility.getHeight();
-                if (pager.getVisibility() == View.VISIBLE)
-                    maxY -= pager.getHeight();
-
-                switch (event.getAction()) {
-                    case DragEvent.ACTION_DRAG_LOCATION:
-                        //Center touch location with btn icon
-                        float dX = event.getX() - visibility.getWidth() / 2.0f;
-                        float dY = event.getY() - visibility.getHeight() / 2.0f;
-
-                        //Make sure the dragged btn is inside the view with clamp
-                        overlay.setX(MathUtils.clamp(dX, 0, maxX));
-                        overlay.setY(MathUtils.clamp(dY, 0, maxY));
-                        break;
-                    case DragEvent.ACTION_DRAG_ENDED:
-                        //Make sure the dragged btn is inside the view
-                        overlay.setX(MathUtils.clamp(overlay.getX(), 0, maxX));
-                        overlay.setY(MathUtils.clamp(overlay.getY(), 0, maxY));
-                        break;
-                }
-                return true;
-            });
-
-            return true;
-        });
-    }
-
-    private void showStylusAuxButtons(boolean show) {
-        LinearLayout buttons = findViewById(R.id.mouse_helper_visibility);
-        if (LorieView.connected() && show) {
-            buttons.setVisibility(View.VISIBLE);
-            buttons.setAlpha(isInPictureInPictureMode ? 0.f : 1.f);
-        } else {
-            //Reset default input back to normal
-            TouchInputHandler.STYLUS_INPUT_HELPER_MODE = 1;
-            final float menuUnselectedTrasparency = 0.66f;
-            final float menuSelectedTrasparency = 1.0f;
-            findViewById(R.id.button_left_click).setAlpha(menuSelectedTrasparency);
-            findViewById(R.id.button_right_click).setAlpha(menuUnselectedTrasparency);
-            findViewById(R.id.button_middle_click).setAlpha(menuUnselectedTrasparency);
-            findViewById(R.id.button_visibility).setAlpha(menuUnselectedTrasparency);
-            buttons.setVisibility(View.GONE);
-        }
-    }
-
-    private void makeSureHelpersAreVisibleAndInScreenBounds() {
-        final ViewPager pager = getTerminalToolbarViewPager();
-        View mouseAuxButtons = findViewById(R.id.mouse_buttons);
-        View stylusAuxButtons = findViewById(R.id.mouse_helper_visibility);
-        int maxYDecrement = (pager.getVisibility() == View.VISIBLE) ? pager.getHeight() : 0;
-
-        mouseAuxButtons.setX(MathUtils.clamp(mouseAuxButtons.getX(), frm.getX(), frm.getX() + frm.getWidth() - mouseAuxButtons.getWidth()));
-        mouseAuxButtons.setY(MathUtils.clamp(mouseAuxButtons.getY(), frm.getY(), frm.getY() + frm.getHeight() - mouseAuxButtons.getHeight() - maxYDecrement));
-
-        stylusAuxButtons.setX(MathUtils.clamp(stylusAuxButtons.getX(), frm.getX(), frm.getX() + frm.getWidth() - stylusAuxButtons.getWidth()));
-        stylusAuxButtons.setY(MathUtils.clamp(stylusAuxButtons.getY(), frm.getY(), frm.getY() + frm.getHeight() - stylusAuxButtons.getHeight() - maxYDecrement));
-    }
-
-    public void toggleStylusAuxButtons() {
-        showStylusAuxButtons(findViewById(R.id.mouse_helper_visibility).getVisibility() != View.VISIBLE);
-        makeSureHelpersAreVisibleAndInScreenBounds();
-    }
-
-    private void showMouseAuxButtons(boolean show) {
-        View v = findViewById(R.id.mouse_buttons);
-        v.setVisibility((LorieView.connected() && show && "1".equals(prefs.touchMode.get())) ? View.VISIBLE : View.GONE);
-        v.setAlpha(isInPictureInPictureMode ? 0.f : 0.7f);
-        makeSureHelpersAreVisibleAndInScreenBounds();
-    }
-
-    public void toggleMouseAuxButtons() {
-        showMouseAuxButtons(findViewById(R.id.mouse_buttons).getVisibility() != View.VISIBLE);
-    }
+    @Deprecated
+    public void toggleMouseAuxButtons() { }
 
     void setSize(View v, int width, int height) {
         ViewGroup.LayoutParams p = v.getLayoutParams();
@@ -401,103 +275,8 @@ public class MainActivity extends AppCompatActivity {
         v.setMinimumHeight((int) (height * getResources().getDisplayMetrics().density));
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    void initMouseAuxButtons() {
-        final ViewPager pager = getTerminalToolbarViewPager();
-        Button left = findViewById(R.id.mouse_button_left_click);
-        Button right = findViewById(R.id.mouse_button_right_click);
-        Button middle = findViewById(R.id.mouse_button_middle_click);
-        ImageButton pos = findViewById(R.id.mouse_buttons_position);
-        LinearLayout primaryLayer = findViewById(R.id.mouse_buttons);
-        LinearLayout secondaryLayer = findViewById(R.id.mouse_buttons_secondary_layer);
-
-        boolean mouseHelperEnabled = prefs.showMouseHelper.get() && "1".equals(prefs.touchMode.get());
-        primaryLayer.setVisibility(mouseHelperEnabled ? View.VISIBLE : View.GONE);
-
-        pos.setOnClickListener((v) -> {
-            if (secondaryLayer.getOrientation() == LinearLayout.HORIZONTAL) {
-                setSize(left, 48, 96);
-                setSize(right, 48, 96);
-                secondaryLayer.setOrientation(LinearLayout.VERTICAL);
-            } else {
-                setSize(left, 96, 48);
-                setSize(right, 96, 48);
-                secondaryLayer.setOrientation(LinearLayout.HORIZONTAL);
-            }
-            handler.postDelayed(() -> {
-                float maxX = frm.getX() + frm.getWidth() - primaryLayer.getWidth();
-                float maxY = frm.getY() + frm.getHeight() - primaryLayer.getHeight();
-                if (pager.getVisibility() == View.VISIBLE)
-                    maxY -= pager.getHeight();
-                primaryLayer.setX(MathUtils.clamp(primaryLayer.getX(), frm.getX(), maxX));
-                primaryLayer.setY(MathUtils.clamp(primaryLayer.getY(), frm.getY(), maxY));
-            }, 10);
-        });
-
-        Map.of(left, InputStub.BUTTON_LEFT, middle, InputStub.BUTTON_MIDDLE, right, InputStub.BUTTON_RIGHT)
-                .forEach((v, b) -> v.setOnTouchListener((__, e) -> {
-            switch(e.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                case MotionEvent.ACTION_POINTER_DOWN:
-                    getLorieView().sendMouseEvent(0, 0, b, true, true);
-                    v.setPressed(true);
-                    break;
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_POINTER_UP:
-                    getLorieView().sendMouseEvent(0, 0, b, false, true);
-                    v.setPressed(false);
-                    break;
-            }
-            return true;
-        }));
-
-        pos.setOnTouchListener(new View.OnTouchListener() {
-            final int touchSlop = (int) Math.pow(ViewConfiguration.get(MainActivity.this).getScaledTouchSlop(), 2);
-            final int tapTimeout = ViewConfiguration.getTapTimeout();
-            final float[] startOffset = new float[2];
-            final int[] startPosition = new int[2];
-            long startTime;
-            @Override
-            public boolean onTouch(View v, MotionEvent e) {
-                switch(e.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        primaryLayer.getLocationInWindow(startPosition);
-                        startOffset[0] = e.getX();
-                        startOffset[1] = e.getY();
-                        startTime = SystemClock.uptimeMillis();
-                        pos.setPressed(true);
-                        break;
-                    case MotionEvent.ACTION_MOVE: {
-                        final ViewPager pager = getTerminalToolbarViewPager();
-                        int[] offset = new int[2];
-                        primaryLayer.getLocationInWindow(offset);
-                        float maxX = frm.getX() + frm.getWidth() - primaryLayer.getWidth();
-                        float maxY = frm.getY() + frm.getHeight() - primaryLayer.getHeight();
-                        if (pager.getVisibility() == View.VISIBLE)
-                            maxY -= pager.getHeight();
-
-                        primaryLayer.setX(MathUtils.clamp(offset[0] - startOffset[0] + e.getX(), frm.getX(), maxX));
-                        primaryLayer.setY(MathUtils.clamp(offset[1] - startOffset[1] + e.getY(), frm.getY(), maxY));
-                        break;
-                    }
-                    case MotionEvent.ACTION_UP: {
-                        final int[] _pos = new int[2];
-                        primaryLayer.getLocationInWindow(_pos);
-                        int deltaX = (int) (startOffset[0] - e.getX()) + (startPosition[0] - _pos[0]);
-                        int deltaY = (int) (startOffset[1] - e.getY()) + (startPosition[1] - _pos[1]);
-                        pos.setPressed(false);
-
-                        if (deltaX * deltaX + deltaY * deltaY < touchSlop && SystemClock.uptimeMillis() - startTime <= tapTimeout) {
-                            v.performClick();
-                            return true;
-                        }
-                        break;
-                    }
-                }
-                return true;
-            }
-        });
-    }
+    @Deprecated
+    void initMouseAuxButtons() { }
 
     void onReceiveConnection(Intent intent) {
         Bundle bundle = intent == null ? null : intent.getBundleExtra(null);
@@ -579,8 +358,6 @@ public class MainActivity extends AppCompatActivity {
         mInputHandler.reloadPreferences(prefs);
         lorieView.reloadPreferences(prefs);
 
-        setTerminalToolbarView();
-
         lorieView.triggerCallback();
 
         filterOutWinKey = prefs.filterOutWinkey.get();
@@ -591,12 +368,6 @@ public class MainActivity extends AppCompatActivity {
 
         useTermuxEKBarBehaviour = prefs.useTermuxEKBarBehaviour.get();
         showIMEWhileExternalConnected = prefs.showIMEWhileExternalConnected.get();
-
-        findViewById(R.id.mouse_buttons).setVisibility(prefs.showMouseHelper.get() && "1".equals(prefs.touchMode.get()) && LorieView.connected() ? View.VISIBLE : View.GONE);
-        showMouseAuxButtons(prefs.showMouseHelper.get());
-        showStylusAuxButtons(prefs.showStylusClickOverride.get());
-
-        getTerminalToolbarViewPager().setAlpha(isInPictureInPictureMode ? 0.f : ((float) prefs.opacityEKBar.get())/100);
 
         lorieView.requestLayout();
         lorieView.invalidate();
@@ -615,55 +386,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public LorieView getLorieView() {
-        return findViewById(R.id.lorieView);
+        return lorieView;
     }
 
     public ViewPager getTerminalToolbarViewPager() {
         return findViewById(R.id.terminal_toolbar_view_pager);
     }
 
-    private void setTerminalToolbarView() {
-        final ViewPager pager = getTerminalToolbarViewPager();
-        ViewGroup parent = (ViewGroup) pager.getParent();
+    @Deprecated
+    private void setTerminalToolbarView() { }
 
-        boolean showNow = LorieView.connected() && prefs.showAdditionalKbd.get() && prefs.additionalKbdVisible.get();
+    @Deprecated
+    public void toggleExtraKeys(boolean visible, boolean saveState) { }
 
-        pager.setVisibility(showNow ? View.VISIBLE : View.INVISIBLE);
-
-        if (showNow) {
-            pager.setAdapter(new X11ToolbarViewPager.PageAdapter(this, (v, k, e) -> mInputHandler.sendKeyEvent(e)));
-            pager.clearOnPageChangeListeners();
-            pager.addOnPageChangeListener(new X11ToolbarViewPager.OnPageChangeListener(this, pager));
-            pager.bringToFront();
-        } else {
-            parent.removeView(pager);
-            parent.addView(pager, 0);
-            if (mExtraKeys != null)
-                mExtraKeys.unsetSpecialKeys();
-        }
-
-        ViewGroup.LayoutParams layoutParams = pager.getLayoutParams();
-        layoutParams.height = Math.round(37.5f * getResources().getDisplayMetrics().density *
-                (TermuxX11ExtraKeys.getExtraKeysInfo() == null ? 0 : TermuxX11ExtraKeys.getExtraKeysInfo().getMatrix().length));
-        pager.setLayoutParams(layoutParams);
-
-        frm.setPadding(0, 0, 0, prefs.adjustHeightForEK.get() && showNow ? layoutParams.height : 0);
-        getLorieView().requestFocus();
-    }
-
-    public void toggleExtraKeys(boolean visible, boolean saveState) {
-        boolean enabled = prefs.showAdditionalKbd.get();
-
-        if (enabled && LorieView.connected() && saveState)
-            prefs.additionalKbdVisible.put(visible);
-
-        setTerminalToolbarView();
-        getWindow().setSoftInputMode(prefs.Reseed.get() ? SOFT_INPUT_ADJUST_RESIZE : SOFT_INPUT_ADJUST_PAN);
-    }
-
-    public void toggleExtraKeys() {
-        toggleExtraKeys(getTerminalToolbarViewPager().getVisibility() != View.VISIBLE, true);
-    }
+    @Deprecated
+    public void toggleExtraKeys() { }
 
     public boolean handleKey(KeyEvent e) {
         if (filterOutWinKey && (e.getKeyCode() == KEYCODE_META_LEFT || e.getKeyCode() == KEYCODE_META_RIGHT || e.isMetaPressed()))
@@ -707,7 +444,6 @@ public class MainActivity extends AppCompatActivity {
             inputMethodManager.hideSoftInputFromWindow(getWindow().getDecorView().getRootView().getWindowToken(), 0);
 
         orientation = newConfig.orientation;
-        setTerminalToolbarView();
     }
 
     @SuppressLint("WrongConstant")
@@ -837,9 +573,6 @@ public class MainActivity extends AppCompatActivity {
     void clientConnectedStateChanged() {
         runOnUiThread(()-> {
             boolean connected = LorieView.connected();
-            setTerminalToolbarView();
-            findViewById(R.id.mouse_buttons).setVisibility(prefs.showMouseHelper.get() && "1".equals(prefs.touchMode.get()) && connected ? View.VISIBLE : View.GONE);
-            findViewById(R.id.stub).setVisibility(connected?View.INVISIBLE:View.VISIBLE);
             getLorieView().setVisibility(connected?View.VISIBLE:View.INVISIBLE);
 
             // We should recover connection in the case if file descriptor for some reason was broken...
